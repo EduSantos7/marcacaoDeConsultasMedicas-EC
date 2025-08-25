@@ -1,64 +1,78 @@
 import React from 'react';
 import styled from 'styled-components/native';
-import { Avatar } from 'react-native-elements';
-import { useAuth } from '../contexts/AuthContext';
+import { ViewStyle, TouchableOpacity } from 'react-native';
 import theme from '../styles/theme';
 
-const Header: React.FC = () => {
-    const { user } = useAuth();
+interface TimeSlotListProps {
+    onSelectTime: (time: string) => void;
+    selectedTime?: string;
+    style?: ViewStyle;
+}
 
-    if (!user) return null;
+interface StyledProps {
+    isSelected: boolean;
+}
+
+const TimeSlotList: React.FC<TimeSlotListProps> = ({
+                                                       onSelectTime,
+                                                       selectedTime,
+                                                       style,
+                                                   }) => {
+    // Gera horários de 30 em 30 minutos das 9h às 18h
+    const generateTimeSlots = () => {
+        const slots: string[] = [];
+        for (let hour = 9; hour < 18; hour++) {
+            slots.push(`${hour.toString().padStart(2, '0')}:00`);
+            slots.push(`${hour.toString().padStart(2, '0')}:30`);
+        }
+        return slots;
+    };
+
+    const timeSlots = generateTimeSlots();
 
     return (
-        <Container>
-            <UserInfo>
-                <Avatar
-                    size="medium"
-                    rounded
-                    source={{ uri: user.image }}
-                    containerStyle={styles.avatar}
-                />
-                <TextContainer>
-                    <WelcomeText>Bem-vindo(a),</WelcomeText>
-                    <UserName>{user.name}</UserName>
-                </TextContainer>
-            </UserInfo>
+        <Container style={style}>
+            <TimeGrid>
+                {timeSlots.map((time) => (
+                    <TimeCard
+                        key={time}
+                        onPress={() => onSelectTime(time)}
+                        isSelected={selectedTime === time}
+                    >
+                        <TimeText isSelected={selectedTime === time}>{time}</TimeText>
+                    </TimeCard>
+                ))}
+            </TimeGrid>
         </Container>
     );
 };
 
-const styles = {
-    avatar: {
-        backgroundColor: theme.colors.primary,
-    },
-};
-
 const Container = styled.View`
-    background-color: ${theme.colors.background};
-    padding: 16px;
-    border-bottom-width: 1px;
-    border-bottom-color: ${theme.colors.border};
+    margin-bottom: 15px;
 `;
 
-const UserInfo = styled.View`
+const TimeGrid = styled.View`
     flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 6px;
+`;
+
+const TimeCard = styled(TouchableOpacity)<StyledProps>`
+    width: 23%;
+    padding: 8px;
+    border-radius: 6px;
+    background-color: ${(props: StyledProps) => props.isSelected ? theme.colors.primary + '20' : theme.colors.background};
+    border-width: 1px;
+    border-color: ${(props: StyledProps) => props.isSelected ? theme.colors.primary : theme.colors.border};
     align-items: center;
+    justify-content: center;
 `;
 
-const TextContainer = styled.View`
-    margin-left: 12px;
+const TimeText = styled.Text<StyledProps>`
+    font-size: 12px;
+    font-weight: 500;
+    color: ${(props: StyledProps) => props.isSelected ? theme.colors.primary : theme.colors.text};
 `;
 
-const WelcomeText = styled.Text`
-  font-size: 14px;
-  color: ${theme.colors.text};
-  opacity: 0.7;
-`;
-
-const UserName = styled.Text`
-  font-size: 18px;
-  font-weight: bold;
-  color: ${theme.colors.text};
-`;
-
-export default Header;
+export default TimeSlotList;
