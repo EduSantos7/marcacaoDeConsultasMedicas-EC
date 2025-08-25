@@ -1,88 +1,31 @@
-import React from 'react';
-import styled from 'styled-components/native';
-import { ViewStyle } from 'react-native';
-import { ListItem, Avatar } from 'react-native-elements';
-import theme from '../styles/theme';
+// Lista de médicos hardcoded
+const doctors: Doctor[] = [
+    {
+        id: '1',
+        name: 'Dr. João Silva',
+        specialty: 'Cardiologista',
+        image: 'https://mighty.tools/mockmind-api/content/human/91.jpg',
+    },
+    // ... mais médicos fixos
+];
 
-interface Doctor {
-    id: string;
-    name: string;
-    specialty: string;
-    image: string;
-}
+const AppointmentForm: React.FC<AppointmentFormProps> = ({ onSubmit }) => {
+    const [selectedDoctor, setSelectedDoctor] = useState<string>('');
+    const [dateInput, setDateInput] = useState('');
+    const [selectedTime, setSelectedTime] = useState<string>('');
+    const [description, setDescription] = useState('');
 
-interface DoctorListProps {
-    doctors: Doctor[];
-    onSelectDoctor: (doctor: Doctor) => void;
-    selectedDoctorId?: string;
-    style?: ViewStyle;
-}
-
-const DoctorList: React.FC<DoctorListProps> = ({
-                                                   doctors,
-                                                   onSelectDoctor,
-                                                   selectedDoctorId,
-                                                   style,
-                                               }) => {
+    // Renderização direta dos médicos mockados
     return (
-        <Container style={style}>
-            {doctors.map((doctor) => (
-                <ListItem
-                    key={doctor.id}
-                    onPress={() => onSelectDoctor(doctor)}
-                    containerStyle={[
-                        styles.listItem,
-                        selectedDoctorId === doctor.id && styles.selectedItem,
-                    ]}
-                >
-                    <Avatar
-                        size="medium"
-                        rounded
-                        source={{ uri: doctor.image }}
-                        containerStyle={styles.avatar}
-                    />
-                    <ListItem.Content>
-                        <ListItem.Title style={styles.name}>{doctor.name}</ListItem.Title>
-                        <ListItem.Subtitle style={styles.specialty}>
-                            {doctor.specialty}
-                        </ListItem.Subtitle>
-                    </ListItem.Content>
-                    <ListItem.Chevron />
-                </ListItem>
-            ))}
+        <Container>
+            <Title>Selecione o Médico</Title>
+            <DoctorList>
+                {doctors.map((doctor) => (  // ← Lista fixa
+                    <DoctorCard key={doctor.id}>
+                        {/* ... */}
+                    </DoctorCard>
+                ))}
+            </DoctorList>
+            {/* ... resto do formulário */}
         </Container>
     );
-};
-
-const styles = {
-    listItem: {
-        borderRadius: 8,
-        marginVertical: 4,
-        backgroundColor: theme.colors.background,
-        borderWidth: 1,
-        borderColor: theme.colors.border,
-    },
-    selectedItem: {
-        backgroundColor: theme.colors.primary + '20',
-        borderColor: theme.colors.primary,
-    },
-    avatar: {
-        backgroundColor: theme.colors.primary,
-    },
-    name: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: theme.colors.text,
-    },
-    specialty: {
-        fontSize: 14,
-        color: theme.colors.text,
-        opacity: 0.7,
-    },
-};
-
-const Container = styled.View`
-  margin-bottom: 15px;
-`;
-
-export default DoctorList;

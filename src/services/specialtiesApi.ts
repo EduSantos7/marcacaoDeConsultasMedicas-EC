@@ -1,115 +1,71 @@
-import { apiClient, API_ENDPOINTS } from './api';
-import { User, LoginCredentials, RegisterData, AuthResponse } from '../types/auth';
+import { authApiService } from '../services/authApi';
+import { specialtiesApiService, Specialty } from '../services/specialtiesApi';
 
-/**
- * Interface para a resposta de login da API
- */
-interface ApiLoginResponse {
-    token: string;
-}
+const AppointmentForm: React.FC<AppointmentFormProps> = ({ onSubmit }) => {
+    const [selectedDoctor, setSelectedDoctor] = useState<string>('');
+    const [selectedSpecialty, setSelectedSpecialty] = useState<string>('');  // ← NOVO!
 
-/**
- * Interface para o usuário retornado pela API
- */
-interface ApiUser {
-    id: number;
-    nome: string;
-    email: string;
-    tipo: 'ADMIN' | 'MEDICO' | 'PACIENTE';
-}
+    // Estados para dados da API  ← NOVO!
+    const [doctors, setDoctors] = useState<User[]>([]);
+    const [specialties, setSpecialties] = useState<Specialty[]>([]);
+    const [loading, setLoading] = useState(true);
 
-/**
- * Serviço de autenticação que se conecta com a API do backend
- */
-export const authApiService = {
-    /**
-     * Faz login com a API
-     */
-    async signIn(credentials: LoginCredentials): Promise<AuthResponse> {
+    // Carrega dados ao montar o componente  ← NOVO!
+    useEffect(() => {
+        loadInitialData();
+    }, []);
+
+    // Carrega médicos por especialidade  ← NOVO!
+    useEffect(() => {
+        if (selectedSpecialty) {
+            loadDoctorsBySpecialty(selectedSpecialty);
+        } else {
+            loadAllDoctors();
+        }
+    }, [selectedSpecialty]);
+
+    const loadInitialData = async () => {  // ← NOVO!
         try {
-            // Faz a requisição de login
-            const loginResponse = await apiClient.post<ApiLoginResponse>(
-                API_ENDPOINTS.LOGIN,
-                {
-                    email: credentials.email,
-                    senha: credentials.password,
-                }
-            );
+            setLoading(true);
+            const [specialtiesData, doctorsData] = await Promise.all([
+                specialtiesApiService.getAllSpecialties(),
+                authApiService.getAllDoctors(),
+            ]);
 
-            // Define o token no cliente da API
-            apiClient.setToken(loginResponse.token);
-
-            // Busca os dados do usuário
-            const userData = await this.getCurrentUser();
-
-            return {
-                user: userData,
-                token: loginResponse.token,
-            };
+            setSpecialties(specialtiesData);
+            setDoctors(doctorsData);
         } catch (error) {
-            console.error('Erro no login:', error);
-            throw new Error('Email ou senha inválidos');
+            console.error('Erro ao carregar dados:', error);
+            Alert.alert('Erro', 'Não foi possível carregar os dados. Tente novamente.');
+        } finally {
+            setLoading(false);
         }
-    },
+    };
 
-    /**
-     * Registra um novo usuário (paciente)
-     */
-    async register(data: RegisterData): Promise<AuthResponse> {
-        try {
-            // Cria o usuário
-            const newUser = await apiClient.post<ApiUser>(API_ENDPOINTS.REGISTER, {
-                nome: data.name,
-                email: data.email,
-                senha: data.password,
-                tipo: 'PACIENTE',
-            });
+    // Interface com seleção de especialidade  ← NOVO!
+    return (
+        <Container>
+            <Title>Selecione a Especialidade</Title>  {/* ← NOVO! */}
+    <SpecialtyContainer>
+    {specialties.map((specialty) => (  // ← Dados reais da API
+            <SpecialtyButton
+                key={specialty.id}
+        selected={selectedSpecialty === specialty.name}
+    onPress={() => setSelectedSpecialty(specialty.name)}
+>
+    <SpecialtyText>{specialty.name}</SpecialtyText>
+    </SpecialtyButton>
+))}
+    </SpecialtyContainer>
 
-            // Faz login automaticamente após o registro
-            return await this.signIn({
-                email: data.email,
-                password: data.password,
-            });
-        } catch (error) {
-            console.error('Erro no registro:', error);
-            throw new Error('Erro ao criar conta. Verifique se o email já não está em uso.');
-        }
-    },
-
-    /**
-     * Obtém os dados do usuário atual baseado no token JWT
-     */
-    async getCurrentUser(): Promise<User> {
-        try {
-            // Busca o usuário atual usando o endpoint específico que utiliza o JWT
-            const currentUser = await apiClient.get<ApiUser>(API_ENDPOINTS.CURRENT_USER);
-            return this.mapApiUserToUser(currentUser);
-        } catch (error) {
-            console.error('Erro ao buscar usuário atual:', error);
-            throw new Error('Erro ao carregar dados do usuário');
-        }
-    },
-
-    /**
-     * Mapeia um usuário da API para o formato usado no frontend
-     */
-    mapApiUserToUser(apiUser: ApiUser): User {
-        const baseUser = {
-            id: apiUser.id.toString(),
-            name: apiUser.nome,
-            email: apiUser.email,
-            image: `https://randomuser.me/api/portraits/${apiUser.id % 2 === 0 ? 'men' : 'women'}/${(apiUser.id % 10) + 1}.jpg`,
-        };
-
-        switch (apiUser.tipo) {
-            case 'ADMIN':
-                return { ...baseUser, role: 'admin' as const };
-            case 'MEDICO':
-                return { ...baseUser, role: 'doctor' as const, specialty: 'Especialidade não informada' };
-            case 'PACIENTE':
-                return { ...baseUser, role: 'patient' as const };
-            default:
-                throw new Error(`Tipo de usuário inválido: ${apiUser.tipo}`);
-        }
-    },
-};
+    <Title>Selecione o Médico</Title>
+    <DoctorList>
+    {doctors.map((doctor) => (  // ← Agora dados dinâmicos
+            <DoctorCard key={doctor.id}>
+                {/* ... */}
+                </DoctorCard>
+        ))}
+    </DoctorList>
+    {/* ... resto do formulário */}
+    </Container>
+);
