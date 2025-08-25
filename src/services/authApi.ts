@@ -1,161 +1,85 @@
-import { apiClient, API_ENDPOINTS } from './api';
-import { User, LoginCredentials, RegisterData, AuthResponse } from '../types/auth';
+/**
+ * Configuração base da API
+ */
+
+// URL base da API do backend
+export const API_BASE_URL = 'http://localhost:8080';
+
+// Endpoints da API
+export const API_ENDPOINTS = {
+    // Autenticação
+    LOGIN: '/usuarios/login',
+    REGISTER: '/usuarios',
+    CURRENT_USER: '/usuarios/me',
+
+    // Usuários
+    USERS: '/usuarios',
+    DOCTORS: '/usuarios/medicos',
+
+    // Especialidades
+    SPECIALTIES: '/especialidades',
+
+    // Consultas
+    APPOINTMENTS: '/consultas',
+} as const;
 
 /**
- * Interface para a resposta de login da API
+ * Classe para fazer requisições HTTP à API
  */
-interface ApiLoginResponse {
-  token: string;
-}
+export class ApiClient {
+    private baseURL: string;
+    private token: string | null = null;
 
-/**
- * Interface para o usuário retornado pela API
- */
-interface ApiUser {
-  id: number;
-  nome: string;
-  email: string;
-  tipo: 'ADMIN' | 'MEDICO' | 'PACIENTE';
-}
+    constructor(baseURL: string = API_BASE_URL) {
+        this.baseURL = baseURL;
+    }
 
-/**
- * Serviço de autenticação que se conecta com a API do backend
- */
-export const authApiService = {
-  /**
-   * Faz login com a API
-   */
-  async signIn(credentials: LoginCredentials): Promise<AuthResponse> {
-    try {
-      // Faz a requisição de login
-      const loginResponse = await apiClient.post<ApiLoginResponse>(
-        API_ENDPOINTS.LOGIN,
-        {
-          email: credentials.email,
-          senha: credentials.password,
+    setToken(token: string | null) {
+        this.token = token;
+    }
+
+    private getHeaders(): HeadersInit {
+        const headers: HeadersInit = {
+            'Content-Type': 'application/json',
+        };
+
+        if (this.token) {
+            headers.Authorization = `Bearer ${this.token}`;
         }
-      );
 
-      // Define o token no cliente da API
-      apiClient.setToken(loginResponse.token);
-
-      // Busca os dados do usuário
-      const userData = await this.getCurrentUser();
-
-      return {
-        user: userData,
-        token: loginResponse.token,
-      };
-    } catch (error) {
-      console.error('Erro no login:', error);
-      throw new Error('Email ou senha inválidos');
+        return headers;
     }
-  },
 
-  /**
-   * Registra um novo usuário (paciente)
-   */
-  async register(data: RegisterData): Promise<AuthResponse> {
-    try {
-      // Cria o usuário
-      const newUser = await apiClient.post<ApiUser>(API_ENDPOINTS.REGISTER, {
-        nome: data.name,
-        email: data.email,
-        senha: data.password,
-        tipo: 'PACIENTE',
-      });
+    async get<T>(endpoint: string): Promise<T> {
+        const response = await fetch(`${this.baseURL}${endpoint}`, {
+            method: 'GET',
+            headers: this.getHeaders(),
+        });
 
-      // Faz login automaticamente após o registro
-      return await this.signIn({
-        email: data.email,
-        password: data.password,
-      });
-    } catch (error) {
-      console.error('Erro no registro:', error);
-      throw new Error('Erro ao criar conta. Verifique se o email já não está em uso.');
+        if (!response.ok) {
+            throw new Error(`HTTP Error: ${response.status} - ${response.statusText}`);
+        }
+
+        return response.json();
     }
-  },
 
-  /**
-   * Obtém os dados do usuário atual baseado no token JWT
-   */
-  async getCurrentUser(): Promise<User> {
-    try {
-      // Busca o usuário atual usando o endpoint específico que utiliza o JWT
-      const currentUser = await apiClient.get<ApiUser>(API_ENDPOINTS.CURRENT_USER);
-      return this.mapApiUserToUser(currentUser);
-    } catch (error) {
-      console.error('Erro ao buscar usuário atual:', error);
-      throw new Error('Erro ao carregar dados do usuário');
+    async post<T>(endpoint: string, data?: any): Promise<T> {
+        const response = await fetch(`${this.baseURL}${endpoint}`, {
+            method: 'POST',
+            headers: this.getHeaders(),
+            body: data ? JSON.stringify(data) : undefined,
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP Error: ${response.status} - ${errorText}`);
+        }
+
+        return response.json();
     }
-  },
 
-  /**
-   * Busca todos os médicos
-   */
-  async getAllDoctors(): Promise<User[]> {
-    try {
-      const doctors = await apiClient.get<ApiUser[]>(API_ENDPOINTS.DOCTORS);
-      return doctors.map(this.mapApiUserToUser);
-    } catch (error) {
-      console.error('Erro ao buscar médicos:', error);
-      throw new Error('Erro ao carregar médicos');
-    }
-  },
+    // ... métodos PUT e DELETE similares
+}
 
-  /**
-   * Busca médicos por especialidade
-   */
-  async getDoctorsBySpecialty(specialty: string): Promise<User[]> {
-    try {
-      const doctors = await apiClient.get<ApiUser[]>(
-        `${API_ENDPOINTS.DOCTORS}?especialidade=${encodeURIComponent(specialty)}`
-      );
-      return doctors.map(this.mapApiUserToUser);
-    } catch (error) {
-      console.error('Erro ao buscar médicos por especialidade:', error);
-      throw new Error('Erro ao carregar médicos da especialidade');
-    }
-  },
-
-  /**
-   * Faz logout
-   */
-  async signOut(): Promise<void> {
-    // Remove o token do cliente da API
-    apiClient.setToken(null);
-  },
-
-  /**
-   * Mapeia um usuário da API para o formato usado no frontend
-   */
-  mapApiUserToUser(apiUser: ApiUser): User {
-    const baseUser = {
-      id: apiUser.id.toString(),
-      name: apiUser.nome,
-      email: apiUser.email,
-      image: `https://randomuser.me/api/portraits/${apiUser.id % 2 === 0 ? 'men' : 'women'}/${(apiUser.id % 10) + 1}.jpg`,
-    };
-
-    switch (apiUser.tipo) {
-      case 'ADMIN':
-        return {
-          ...baseUser,
-          role: 'admin' as const,
-        };
-      case 'MEDICO':
-        return {
-          ...baseUser,
-          role: 'doctor' as const,
-          specialty: 'Especialidade não informada', // TODO: Buscar da API de especialidades
-        };
-      case 'PACIENTE':
-        return {
-          ...baseUser,
-          role: 'patient' as const,
-        };
-      default:
-        throw new Error(`Tipo de usuário inválido: ${apiUser.tipo}`);
-    }
-  },
-};
+// Instância global do cliente da API
+export const apiClient = new ApiClient();
