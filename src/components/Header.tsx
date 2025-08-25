@@ -34,31 +34,31 @@ const styles = {
 };
 
 const Container = styled.View`
-    background-color: ${theme.colors.background};
-    padding: 16px;
-    border-bottom-width: 1px;
-    border-bottom-color: ${theme.colors.border};
+  background-color: ${theme.colors.background};
+  padding: 16px;
+  border-bottom-width: 1px;
+  border-bottom-color: ${theme.colors.border};
 `;
 
 const UserInfo = styled.View`
-    flex-direction: row;
-    align-items: center;
+  flex-direction: row;
+  align-items: center;
 `;
 
 const TextContainer = styled.View`
-    margin-left: 12px;
+  margin-left: 12px;
 `;
 
 const WelcomeText = styled.Text`
-    font-size: 14px;
-    color: ${theme.colors.text};
-    opacity: 0.7;
+  font-size: 14px;
+  color: ${theme.colors.text};
+  opacity: 0.7;
 `;
 
 const UserName = styled.Text`
-    font-size: 18px;
-    font-weight: bold;
-    color: ${theme.colors.text};
+  font-size: 18px;
+  font-weight: bold;
+  color: ${theme.colors.text};
 `;
 
 export default Header;

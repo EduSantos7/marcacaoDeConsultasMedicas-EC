@@ -1,96 +1,78 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { authApiService } from '../services/authApi';
-import { apiClient } from '../services/api';
-import { User, LoginCredentials, RegisterData, AuthContextData } from '../types/auth';
+import React from 'react';
+import styled from 'styled-components/native';
+import { ViewStyle, TouchableOpacity } from 'react-native';
+import theme from '../styles/theme';
 
-// Chaves de armazenamento
-const STORAGE_KEYS = {
-  USER: '@MedicalApp:user',
-  TOKEN: '@MedicalApp:token',
+interface TimeSlotListProps {
+    onSelectTime: (time: string) => void;
+    selectedTime?: string;
+    style?: ViewStyle;
+}
+
+interface StyledProps {
+    isSelected: boolean;
+}
+
+const TimeSlotList: React.FC<TimeSlotListProps> = ({
+                                                       onSelectTime,
+                                                       selectedTime,
+                                                       style,
+                                                   }) => {
+    // Gera horários de 30 em 30 minutos das 9h às 18h
+    const generateTimeSlots = () => {
+        const slots: string[] = [];
+        for (let hour = 9; hour < 18; hour++) {
+            slots.push(`${hour.toString().padStart(2, '0')}:00`);
+            slots.push(`${hour.toString().padStart(2, '0')}:30`);
+        }
+        return slots;
+    };
+
+    const timeSlots = generateTimeSlots();
+
+    return (
+        <Container style={style}>
+            <TimeGrid>
+                {timeSlots.map((time) => (
+                    <TimeCard
+                        key={time}
+                        onPress={() => onSelectTime(time)}
+                        isSelected={selectedTime === time}
+                    >
+                        <TimeText isSelected={selectedTime === time}>{time}</TimeText>
+                    </TimeCard>
+                ))}
+            </TimeGrid>
+        </Container>
+    );
 };
 
-const AuthContext = createContext<AuthContextData>({} as AuthContextData);
+const Container = styled.View`
+  margin-bottom: 15px;
+`;
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+const TimeGrid = styled.View`
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 6px;
+`;
 
-  useEffect(() => {
-    loadStoredUser();
-  }, []);
+const TimeCard = styled(TouchableOpacity)<StyledProps>`
+  width: 23%;
+  padding: 8px;
+  border-radius: 6px;
+  background-color: ${(props: StyledProps) => props.isSelected ? theme.colors.primary + '20' : theme.colors.background};
+  border-width: 1px;
+  border-color: ${(props: StyledProps) => props.isSelected ? theme.colors.primary : theme.colors.border};
+  align-items: center;
+  justify-content: center;
+`;
 
-  const loadStoredUser = async () => {
-    try {
-      // Carrega o token salvo
-      const storedToken = await AsyncStorage.getItem(STORAGE_KEYS.TOKEN);
-      const storedUser = await AsyncStorage.getItem(STORAGE_KEYS.USER);
-      
-      if (storedToken && storedUser) {
-        // Configura o token no cliente da API
-        apiClient.setToken(storedToken);
-        setUser(JSON.parse(storedUser));
-      }
-    } catch (error) {
-      console.error('Erro ao carregar usuário:', error);
-      // Se houver erro, limpa os dados armazenados
-      await AsyncStorage.removeItem(STORAGE_KEYS.USER);
-      await AsyncStorage.removeItem(STORAGE_KEYS.TOKEN);
-    } finally {
-      setLoading(false);
-    }
-  };
+const TimeText = styled.Text<StyledProps>`
+  font-size: 12px;
+  font-weight: 500;
+  color: ${(props: StyledProps) => props.isSelected ? theme.colors.primary : theme.colors.text};
+`;
 
-  const signIn = async (credentials: LoginCredentials) => {
-    try {
-      const response = await authApiService.signIn(credentials);
-      setUser(response.user);
-      
-      // Salva os dados no AsyncStorage para persistência
-      await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(response.user));
-      await AsyncStorage.setItem(STORAGE_KEYS.TOKEN, response.token);
-    } catch (error) {
-      throw error;
-    }
-  };
-
-  const register = async (data: RegisterData) => {
-    try {
-      const response = await authApiService.register(data);
-      setUser(response.user);
-      
-      // Salva os dados no AsyncStorage para persistência
-      await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(response.user));
-      await AsyncStorage.setItem(STORAGE_KEYS.TOKEN, response.token);
-    } catch (error) {
-      throw error;
-    }
-  };
-
-  const signOut = async () => {
-    try {
-      await authApiService.signOut();
-      setUser(null);
-      
-      // Remove os dados do AsyncStorage
-      await AsyncStorage.removeItem(STORAGE_KEYS.USER);
-      await AsyncStorage.removeItem(STORAGE_KEYS.TOKEN);
-    } catch (error) {
-      console.error('Erro ao fazer logout:', error);
-    }
-  };
-
-  return (
-    <AuthContext.Provider value={{ user, loading, signIn, register, signOut }}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-}; 
+export default TimeSlotList;
