@@ -7,78 +7,122 @@ export const API_BASE_URL = 'http://localhost:8080';
 
 // Endpoints da API
 export const API_ENDPOINTS = {
-    // Autenticação
-    LOGIN: '/usuarios/login',
-    REGISTER: '/usuarios',
-    CURRENT_USER: '/usuarios/me',
+  // Autenticação
+  LOGIN: '/usuarios/login',
+  REGISTER: '/usuarios',
+  CURRENT_USER: '/usuarios/me',
 
-    // Usuários
-    USERS: '/usuarios',
-    DOCTORS: '/usuarios/medicos',
+  // Usuários
+  USERS: '/usuarios',
+  DOCTORS: '/usuarios/medicos',
+  CHANGE_PASSWORD: '/usuarios',
 
-    // Especialidades
-    SPECIALTIES: '/especialidades',
+  // Especialidades
+  SPECIALTIES: '/especialidades',
 
-    // Consultas
-    APPOINTMENTS: '/consultas',
+  // Consultas
+  APPOINTMENTS: '/consultas',
 } as const;
 
 /**
  * Classe para fazer requisições HTTP à API
  */
 export class ApiClient {
-    private baseURL: string;
-    private token: string | null = null;
+  private baseURL: string;
+  private token: string | null = null;
 
-    constructor(baseURL: string = API_BASE_URL) {
-        this.baseURL = baseURL;
+  constructor(baseURL: string = API_BASE_URL) {
+    this.baseURL = baseURL;
+  }
+
+  /**
+   * Define o token de autenticação
+   */
+  setToken(token: string | null) {
+    this.token = token;
+  }
+
+  /**
+   * Obtém os headers padrão para as requisições
+   */
+  private getHeaders(): HeadersInit {
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+
+    if (this.token) {
+      headers.Authorization = `Bearer ${this.token}`;
     }
 
-    setToken(token: string | null) {
-        this.token = token;
+    return headers;
+  }
+
+  /**
+   * Faz uma requisição GET
+   */
+  async get<T>(endpoint: string): Promise<T> {
+    const response = await fetch(`${this.baseURL}${endpoint}`, {
+      method: 'GET',
+      headers: this.getHeaders(),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP Error: ${response.status} - ${response.statusText}`);
     }
 
-    private getHeaders(): HeadersInit {
-        const headers: HeadersInit = {
-            'Content-Type': 'application/json',
-        };
+    return response.json();
+  }
 
-        if (this.token) {
-            headers.Authorization = `Bearer ${this.token}`;
-        }
+  /**
+   * Faz uma requisição POST
+   */
+  async post<T>(endpoint: string, data?: any): Promise<T> {
+    const response = await fetch(`${this.baseURL}${endpoint}`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: data ? JSON.stringify(data) : undefined,
+    });
 
-        return headers;
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HTTP Error: ${response.status} - ${errorText}`);
     }
 
-    async get<T>(endpoint: string): Promise<T> {
-        const response = await fetch(`${this.baseURL}${endpoint}`, {
-            method: 'GET',
-            headers: this.getHeaders(),
-        });
+    return response.json();
+  }
 
-        if (!response.ok) {
-            throw new Error(`HTTP Error: ${response.status} - ${response.statusText}`);
-        }
+  /**
+   * Faz uma requisição PUT
+   */
+  async put<T>(endpoint: string, data?: any): Promise<T> {
+    const response = await fetch(`${this.baseURL}${endpoint}`, {
+      method: 'PUT',
+      headers: this.getHeaders(),
+      body: data ? JSON.stringify(data) : undefined,
+    });
 
-        return response.json();
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HTTP Error: ${response.status} - ${errorText}`);
     }
 
-    async post<T>(endpoint: string, data?: any): Promise<T> {
-        const response = await fetch(`${this.baseURL}${endpoint}`, {
-            method: 'POST',
-            headers: this.getHeaders(),
-            body: data ? JSON.stringify(data) : undefined,
-        });
+    return response.json();
+  }
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`HTTP Error: ${response.status} - ${errorText}`);
-        }
+  /**
+   * Faz uma requisição DELETE
+   */
+  async delete(endpoint: string): Promise<void> {
+    const response = await fetch(`${this.baseURL}${endpoint}`, {
+      method: 'DELETE',
+      headers: this.getHeaders(),
+    });
 
-        return response.json();
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HTTP Error: ${response.status} - ${errorText}`);
     }
-
-    // ... métodos PUT e DELETE similares
+  }
 }
 
 // Instância global do cliente da API

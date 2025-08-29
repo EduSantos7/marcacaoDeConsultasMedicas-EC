@@ -1,71 +1,45 @@
-import { authApiService } from '../services/authApi';
-import { specialtiesApiService, Specialty } from '../services/specialtiesApi';
+import { apiClient, API_ENDPOINTS } from './api';
 
-const AppointmentForm: React.FC<AppointmentFormProps> = ({ onSubmit }) => {
-    const [selectedDoctor, setSelectedDoctor] = useState<string>('');
-    const [selectedSpecialty, setSelectedSpecialty] = useState<string>('');  // ← NOVO!
+/**
+ * Interface para a especialidade retornada pela API
+ */
+interface ApiSpecialty {
+  id: number;
+  nome: string;
+}
 
-    // Estados para dados da API  ← NOVO!
-    const [doctors, setDoctors] = useState<User[]>([]);
-    const [specialties, setSpecialties] = useState<Specialty[]>([]);
-    const [loading, setLoading] = useState(true);
+/**
+ * Interface para a especialidade usada no frontend
+ */
+export interface Specialty {
+  id: string;
+  name: string;
+}
 
-    // Carrega dados ao montar o componente  ← NOVO!
-    useEffect(() => {
-        loadInitialData();
-    }, []);
+/**
+ * Serviço para gerenciar especialidades médicas
+ */
+export const specialtiesApiService = {
+  /**
+   * Busca todas as especialidades
+   */
+  async getAllSpecialties(): Promise<Specialty[]> {
+    try {
+      const specialties = await apiClient.get<ApiSpecialty[]>(API_ENDPOINTS.SPECIALTIES);
+      return specialties.map(this.mapApiSpecialtyToSpecialty);
+    } catch (error) {
+      console.error('Erro ao buscar especialidades:', error);
+      throw new Error('Erro ao carregar especialidades');
+    }
+  },
 
-    // Carrega médicos por especialidade  ← NOVO!
-    useEffect(() => {
-        if (selectedSpecialty) {
-            loadDoctorsBySpecialty(selectedSpecialty);
-        } else {
-            loadAllDoctors();
-        }
-    }, [selectedSpecialty]);
-
-    const loadInitialData = async () => {  // ← NOVO!
-        try {
-            setLoading(true);
-            const [specialtiesData, doctorsData] = await Promise.all([
-                specialtiesApiService.getAllSpecialties(),
-                authApiService.getAllDoctors(),
-            ]);
-
-            setSpecialties(specialtiesData);
-            setDoctors(doctorsData);
-        } catch (error) {
-            console.error('Erro ao carregar dados:', error);
-            Alert.alert('Erro', 'Não foi possível carregar os dados. Tente novamente.');
-        } finally {
-            setLoading(false);
-        }
+  /**
+   * Mapeia uma especialidade da API para o formato usado no frontend
+   */
+  mapApiSpecialtyToSpecialty(apiSpecialty: ApiSpecialty): Specialty {
+    return {
+      id: apiSpecialty.id.toString(),
+      name: apiSpecialty.nome,
     };
-
-    // Interface com seleção de especialidade  ← NOVO!
-    return (
-        <Container>
-            <Title>Selecione a Especialidade</Title>  {/* ← NOVO! */}
-    <SpecialtyContainer>
-    {specialties.map((specialty) => (  // ← Dados reais da API
-            <SpecialtyButton
-                key={specialty.id}
-        selected={selectedSpecialty === specialty.name}
-    onPress={() => setSelectedSpecialty(specialty.name)}
->
-    <SpecialtyText>{specialty.name}</SpecialtyText>
-    </SpecialtyButton>
-))}
-    </SpecialtyContainer>
-
-    <Title>Selecione o Médico</Title>
-    <DoctorList>
-    {doctors.map((doctor) => (  // ← Agora dados dinâmicos
-            <DoctorCard key={doctor.id}>
-                {/* ... */}
-                </DoctorCard>
-        ))}
-    </DoctorList>
-    {/* ... resto do formulário */}
-    </Container>
-);
+  },
+};

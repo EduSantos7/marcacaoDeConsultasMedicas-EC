@@ -5,32 +5,32 @@ import { useAuth } from '../contexts/AuthContext';
 import theme from '../styles/theme';
 
 const Header: React.FC = () => {
-    const { user } = useAuth();
+  const { user } = useAuth();
 
-    if (!user) return null;
+  if (!user) return null;
 
-    return (
-        <Container>
-            <UserInfo>
-                <Avatar
-                    size="medium"
-                    rounded
-                    source={{ uri: user.image }}
-                    containerStyle={styles.avatar}
-                />
-                <TextContainer>
-                    <WelcomeText>Bem-vindo(a),</WelcomeText>
-                    <UserName>{user.name}</UserName>
-                </TextContainer>
-            </UserInfo>
-        </Container>
-    );
+  return (
+    <Container>
+      <UserInfo>
+        <Avatar
+          size="medium"
+          rounded
+          source={{ uri: user.image }}
+          containerStyle={styles.avatar}
+        />
+        <TextContainer>
+          <WelcomeText>Bem-vindo(a),</WelcomeText>
+          <UserName>{user.name}</UserName>
+        </TextContainer>
+      </UserInfo>
+    </Container>
+  );
 };
 
 const styles = {
-    avatar: {
-        backgroundColor: theme.colors.primary,
-    },
+  avatar: {
+    backgroundColor: theme.colors.primary,
+  },
 };
 
 const Container = styled.View`
@@ -62,3 +62,6 @@ const UserName = styled.Text`
 `;
 
 export default Header;
+
+export class HeaderContainer {
+}
